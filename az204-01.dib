@@ -173,3 +173,7 @@ let uploadExample () =
     
     containerClient.UploadBlob("Grillcheese.jpg",stream)
 uploadExample () 
+
+#!pwsh
+
+az group delete --name ManagedPlatform --no-wait --yes
