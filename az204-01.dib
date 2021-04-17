@@ -2,9 +2,9 @@
 
 # Azurre 204 with F#
 ## 00 Notes
-This is my training, by reproducing the existing labs as notebook for F# and powershell. 
+This is my training for AZ-204, by reproducing the existing labs as notebook for F# and powershell. 
 [Here is the orginal source from Microsoft.](https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure)
-While writing the performance of the powershell cells was very bad. I ran most in the terminal .
+While writing the performance of the powershell cells was very bad. I ran them mostly in the terminal.
 
 ## Lab 01: Building a web application on Azure platform as a service offerings
 
@@ -106,6 +106,14 @@ az storage account create --name $storageAccount --resource-group ManagedPlatfor
 
 $Connectingstring = az storage account show-connection-string --name $storageAccount  --output tsv
 $env:AZURE_STORAGE_CONNECTION_STRING = $connectionString
+echo $env:AZURE_STORAGE_CONNECTION_STRING
+[System.Environment]::SetEnvironmentVariable('AZURE_STORAGE_CONNECTION_STRING',$connectionString,[System.EnvironmentVariableTarget]::User)
+
+#!pwsh
+
+echo $Connectingstring
+echo "--"
+echo $env:AZURE_STORAGE_CONNECTION_STRING
 
 #!markdown
 
@@ -136,3 +144,32 @@ az storage container create --name images  --public-access blob
 $grilledcheese = "https://essenrezept.de/wp-content/uploads/2020/12/Grilled-Cheese-Sandwich-mit-Bacon-768x720.png"
 $testimage = "png\Storage-Accounts.png"
 az storage blob upload --account-name $storageAccount  -c images -f $grilledcheese -n grilledcheese.jpg 
+
+#!markdown
+
+So here my first F# snipset to upload some file to a blob storage. I needed to restart VS code to access the environment variable set above.
+
+#!fsharp
+
+#r "nuget: Azure.Storage.Blobs"
+
+open System
+open System.Net
+open System.IO
+open Azure 
+open Azure.Storage
+open Azure.Storage.Blobs
+
+let connectionString = System.Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
+
+let client = BlobServiceClient(connectionString);
+let containerClient = client.GetBlobContainerClient("images")
+
+let uploadExample () =
+    let url  = "https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure/blob/master/Allfiles/Labs/01/Starter/Images/grilledcheese.jpg?raw=true"
+    let req = WebRequest.Create(Uri(url))
+    use resp = req.GetResponse()
+    use stream = resp.GetResponseStream()
+    
+    containerClient.UploadBlob("Grillcheese.jpg",stream)
+uploadExample () 

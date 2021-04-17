@@ -24,3 +24,7 @@ node_modules/
 *.rar
 *.tar
 *.zip
+
+
+.fake
+.ionide
