@@ -1,0 +1,138 @@
+#!markdown
+
+# Azurre 204 with F#
+## 00 Notes
+This is my training, by reproducing the existing labs as notebook for F# and powershell. 
+[Here is the orginal source from Microsoft.](https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure)
+While writing the performance of the powershell cells was very bad. I ran most in the terminal .
+
+## Lab 01: Building a web application on Azure platform as a service offerings
+
+### Student lab manual
+
+#!markdown
+
+#### Lab scenario
+You’re the owner of a startup organization and have been building an image gallery application for people to share great images of food. To get your product to market as quickly as possible, you decided to use Microsoft Azure App Service to host your web apps and APIs.
+
+#!markdown
+
+#### Lab setup
+* Estimated time: 45 minutes
+
+#!markdown
+
+#### Objectives
+After you complete this lab, you will be able to:
+* Create various apps by using App Service.
+* Configure application settings for an app.
+* Deploy apps by using Kudu, the Azure Command-Line Interface (CLI), and zip file deployment.
+
+#!markdown
+
+#### Lab setup
+* estimated time: 45 minutes
+
+#!markdown
+
+#### Instructions
+##### Before you start
+###### Notes
+In contrast to the official documentation, this section describes what is needed to be installed for the labs. 
+###### Review the installed applications
+These should be insstalled on you Windows 10 computer to do this lab:
+* Webbrowser
+* File Explorer
+* Windows PowerShell
+* [Visual Studio Code](https://code.visualstudio.com/download)
+* [Azure CLI](https://aka.ms/installazurecliwindows)
+
+#!markdown
+
+### Exercise 1: Build a back-end API by using Azure Storage and the Web Apps feature of Azure App Service
+#### Task 1: Open the Azure portal
+1. Sign in to the Azure portal [https://portal.azure.com](https://portal.azure.com).
+> **Note**: If this is your first time signing in to the Azure portal, a dialog box will display offering a tour of the portal. Select **Get Started** to skip the tour.
+
+#!pwsh
+
+az login
+
+#!markdown
+
+2. Set your default location, works only for Azure CLI.
+
+#!pwsh
+
+az configure --defaults location=germanywestcentral
+
+#!markdown
+
+#### <img src="png\Storage-Accounts.png" width="20"> Task 2: Create a Storage account 
+
+1.  Create a new <img src="png\Storage-Accounts.png" width="16"> storage account with the following details:
+
+    
+    -   New <img src="png\Resource-Groups.png" width="16"> resource group: **ManagedPlatform**
+
+    -   Name: **imgstor*[yourname]***
+
+    -   Location: **(US) East US**
+
+    -   Performance: **Standard**
+
+    -   Account kind: **StorageV2 (general purpose v2)**
+
+    -   Replication: **Locally-redundant storage (LRS)**
+
+#!pwsh
+
+az group create --name ManagedPlatform
+
+#!pwsh
+
+$storageAccount = "imgstorpsi"
+az storage account create --name $storageAccount --resource-group ManagedPlatform --kind StorageV2 --sku Standard_LRS
+
+#!markdown
+
+2. Wait for Azure to finish creating the storage account before you move forward with the lab. You’ll receive a notification when the account is created.
+
+3. Access the Access Keys blade of your newly created storage account instance.
+
+4. Record the value of the Connection string text box. You’ll use this value later in this lab.
+
+#!pwsh
+
+$Connectingstring = az storage account show-connection-string --name $storageAccount  --output tsv
+$env:AZURE_STORAGE_CONNECTION_STRING = $connectionString
+
+#!markdown
+
+#### Task 3: Upload a sample blob
+1. Access the <img src="png\Storage-Accounts.png" width="16"> imgstor[yourname] storage account that you created earlier in this lab.
+
+2. In the Blob service section, select the <img src="png\Storage-Accounts.png" width="16"> Containers link.
+
+3. Create a new <img src="png\Storage-Container.png" width="16"> container with the following settings:
+
+    * Name: images
+
+    * Public access level: Blob (anonymous read access for blobs only)
+
+4. Go to the new <img src="png\Storage-Container.png" width="16"> images container, and then use the Upload button to upload the grilledcheese.jpg file in the Allfiles (F):\Allfiles\Labs\01\Starter\Images folder on your lab machine.
+> **Note:** We recommended that you enable the Overwrite if files already exist option.
+
+#!pwsh
+
+az storage container create --name images  --public-access blob
+
+#!markdown
+
+> **Note:** Uploading from a url didn't work, when I wrote this notebook.
+
+#!pwsh
+
+$grilledcheese = "https://essenrezept.de/wp-content/uploads/2020/12/Grilled-Cheese-Sandwich-mit-Bacon-768x720.png"
+$testimage = "png\Storage-Accounts.png"
+az storage blob upload --account-name $storageAccount  -c images -f $grilledcheese -n grilledcheese.jpg 
