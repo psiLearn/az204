@@ -104,16 +104,9 @@ az storage account create --name $storageAccount --resource-group ManagedPlatfor
 
 #!pwsh
 
-$Connectingstring = az storage account show-connection-string --name $storageAccount  --output tsv
+$connectionString = az storage account show-connection-string --name $storageAccount  --output tsv
 $env:AZURE_STORAGE_CONNECTION_STRING = $connectionString
-echo $env:AZURE_STORAGE_CONNECTION_STRING
 [System.Environment]::SetEnvironmentVariable('AZURE_STORAGE_CONNECTION_STRING',$connectionString,[System.EnvironmentVariableTarget]::User)
-
-#!pwsh
-
-echo $Connectingstring
-echo "--"
-echo $env:AZURE_STORAGE_CONNECTION_STRING
 
 #!markdown
 
@@ -139,7 +132,7 @@ az storage container create --name images  --public-access blob
 
 > **Note:** Uploading from a url didn't work, when I wrote this notebook.
 
-#!pwsh
+#!markdown
 
 $grilledcheese = "https://essenrezept.de/wp-content/uploads/2020/12/Grilled-Cheese-Sandwich-mit-Bacon-768x720.png"
 $testimage = "png\Storage-Accounts.png"
@@ -174,6 +167,60 @@ let uploadExample () =
     containerClient.UploadBlob("Grillcheese.jpg",stream)
 uploadExample () 
 
+#!markdown
+
+#### Task 4: Create a web app
+
+1.	Create a new web app with the following details:
+
+    -   Existing resource group: **ManagedPlatform**
+    
+    -   Web App name: **imgapi*[yourname]***
+
+    -   Publish: **Code**
+
+    -	Runtime stack: **.NET Core 3.1 (LTS)**
+
+    -	Operating System: **Windows**
+
+    -	Region: **East US**
+
+    -	New App Service plan: **ManagedPlan**
+    
+    -	SKU and size: **Standard (S1)**
+
+    -	Application Insights: **Disabled**
+
+1.  Wait for Azure to finish creating the web app before you move forward with the lab. You'll receive a notification when the app is created.
+
 #!pwsh
+
+az appservice plan create --name ManagedPlan --resource-group ManagedPlatform
+
+#!pwsh
+
+az webapp create --runtime "DOTNETCORE|3.1" --name imgapipsi --plan ManagedPlan --resource-group ManagedPlatform 
+
+#!markdown
+
+#### Task 5: Configure the web app
+
+1.  Access the **imgapi*[yourname]*** web app that you created earlier in this lab.
+
+1.  In the **Settings** section, find the **Configuration** section, and then create a new application setting by using the following details:
+    
+    -   Name: **StorageConnectionString**
+
+    -   Value: ***Storage Connection String copied earlier in this lab***
+
+    -   Deployment slot setting: **Not selected**
+
+1.  Save your changes to the application settings.
+
+1.  In the **Settings** section, find the **Properties** section.
+
+1.  In the **Properties** section, copy the value of the **URL** text box. You'll use this value later in the lab.
+
+#!markdown
 
 az group delete --name ManagedPlatform --no-wait --yes
