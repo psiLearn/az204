@@ -1,9 +1,9 @@
 #!markdown
 
-# Azurre 204 with F#
+# Azure 204 with F#
 ## 00 Notes
 This is my training for AZ-204, by reproducing the existing labs as notebook for F# and powershell. 
-[Here is the orginal source from Microsoft.](https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure)
+[Here is the original source from Microsoft.](https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure)
 While writing the performance of the powershell cells was very bad. I ran them mostly in the terminal.
 
 ## Lab 01: Building a web application on Azure platform as a service offerings
@@ -40,12 +40,13 @@ After you complete this lab, you will be able to:
 ###### Notes
 In contrast to the official documentation, this section describes what is needed to be installed for the labs. 
 ###### Review the installed applications
-These should be insstalled on you Windows 10 computer to do this lab:
-* Webbrowser
+These should be installed on you Windows 10 computer to do this lab:
+* Browser
 * File Explorer
 * Windows PowerShell
 * [Visual Studio Code](https://code.visualstudio.com/download)
 * [Azure CLI](https://aka.ms/installazurecliwindows)
+* HttpRepl (dotnet tool install -g Microsoft.dotnet-httprepl)
 
 #!markdown
 
@@ -193,13 +194,19 @@ uploadExample ()
 
 1.  Wait for Azure to finish creating the web app before you move forward with the lab. You'll receive a notification when the app is created.
 
+> **Note:** quoting **--runtime '"DOTNETCORE|3.12"'** is important otherwise there will be an error from powershell complainign about 3.1.
+
 #!pwsh
 
 az appservice plan create --name ManagedPlan --resource-group ManagedPlatform
 
 #!pwsh
 
-az webapp create --runtime "DOTNETCORE|3.1" --name imgapipsi --plan ManagedPlan --resource-group ManagedPlatform 
+$imgapiName="imgapipsi"
+
+#!pwsh
+
+az webapp create --runtime '"DOTNETCORE|3.1"' --name $imgapiName --plan ManagedPlan --resource-group ManagedPlatform 
 
 #!markdown
 
@@ -222,5 +229,104 @@ az webapp create --runtime "DOTNETCORE|3.1" --name imgapipsi --plan ManagedPlan 
 1.  In the **Properties** section, copy the value of the **URL** text box. You'll use this value later in the lab.
 
 #!markdown
+
+az group delete --name ManagedPlatform --no-wait --yes
+
+#!pwsh
+
+az webapp config appsettings set --name $imgapiName --resource-group ManagedPlatform --settings StorageConnectionString=$connectionString
+
+#!markdown
+
+#### Task 6: Deploy an ASP.NET web application to Web Apps
+
+1.  Using Visual Studio Code, open the web application in the **Allfiles (F):\\Allfiles\\Labs\\01\\Starter\\API** folder.
+
+1.  Open the **Controllers\\ImagesController.cs** file, and then observe the code in each of the methods.
+
+1.  Open the Windows Terminal application.
+
+1.  Sign in to the Azure CLI by using your Azure credentials:
+
+    ```
+    az login
+    ```
+
+1.  List all the apps in your **ManagedPlatform** resource group:
+
+    ```
+    az webapp list --resource-group ManagedPlatform
+    ```
+
+1.  Find the apps that have the **imgapi\*** prefix:
+
+    ```
+    az webapp list --resource-group ManagedPlatform --query "[?starts_with(name, 'imgapi')]"
+    ```
+
+1.  Print only the name of the single app that has the **imgapi\*** prefix:
+
+    ```
+    az webapp list --resource-group ManagedPlatform --query "[?starts_with(name, 'imgapi')].{Name:name}" --output tsv
+    ```
+
+1.  Change the current directory to the **Allfiles (F):\\Allfiles\\Labs\\01\\Starter\\API** directory that contains the lab files:
+
+    ```
+    cd F:\Allfiles\Labs\01\Starter\API\
+    ```
+
+1.  Deploy the **api.zip** file to the web app that you created earlier in this lab:
+
+    ```
+    az webapp deployment source config-zip --resource-group ManagedPlatform --src api.zip --name <name-of-your-api-app>
+    ```
+
+    > **Note**: Replace the *\<name-of-your-api-app\>* placeholder with the name of the web app that you created earlier in this lab. You recently queried this app’s name in the previous steps.
+
+1.	Access the **imgapi*[yourname]*** web app that you created earlier in this lab. Open the **imgapi*[yourname]*** web app in your browser.
+
+1.	Perform a GET request to the root of the website, and then observe the JavaScript Object Notation (JSON) array that's returned. This array should contain the URL for your single uploaded image in your storage account.
+
+1.  Close the currently running Visual Studio Code and Windows Terminal applications.
+
+#!markdown
+
+$WebZipLink="https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure/blob/master/Allfiles/Labs/01/Starter/Web/web.zip?raw=true"  
+$ApiZipLink='"https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure/blob/master/Allfiles/Labs/01/Starter/API/api.zip?raw=true"'  
+az webapp deployment source config-zip --resource-group ManagedPlatform --src $ApiZipLink --name $imgapiName
+
+#!pwsh
+
+$env:TEMP_WEB_APP_NAME = $imgapiName
+[System.Environment]::SetEnvironmentVariable('TEMP_WEB_APP_NAME',$imgapiName,[System.EnvironmentVariableTarget]::User)
+
+#!fsharp
+
+#r "System.Net.WebClient.dll"
+
+open System
+open System.Net
+open System.IO
+open System.Diagnostics
+
+let loadUp() = 
+    let webAppName  = Environment.GetEnvironmentVariable("TEMP_WEB_APP_NAME", EnvironmentVariableTarget.User)
+    let fileName =  Path.GetTempFileName() 
+                    |> fun n -> [   n |> Path.GetFileNameWithoutExtension
+                                    ".zip"  ] |> List.reduce (+) 
+    let url  = @"https://github.com/MicrosoftLearning/AZ-204-DevelopingSolutionsforMicrosoftAzure/blob/master/Allfiles/Labs/01/Starter/API/api.zip?raw=true"
+    let webClient = new WebClient()
+    let pars = sprintf "webapp deployment source config-zip --resource-group ManagedPlatform --src %A --name %s" fileName webAppName
+    let az = Process.Start("az", pars)
+    az.WaitForExit()
+    File.Delete fileName
+loadUp()
+
+#!pwsh
+
+az webapp deployment source config-zip --resource-group ManagedPlatform --src "tmpA025.zip" --name imgapipsi
+
+#!pwsh
 
 az group delete --name ManagedPlatform --no-wait --yes
